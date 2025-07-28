@@ -22,6 +22,7 @@ import {
   ErrorEvent,
 } from "../schemas";
 import { searchOnWeb } from "../webSearch";
+import { togetherRateLimiter } from "../rateLimiter";
 
 // Helper function to summarize content
 const summarizeContent = async ({
@@ -44,6 +45,9 @@ const summarizeContent = async ({
       )
     : togetheraiClientWithKey(togetherApiKey || "")(MODEL_CONFIG.summaryModel);
 
+  // Rate limit Together.ai calls
+  await togetherRateLimiter.waitIfNeeded();
+  
   const response = await generateText({
     model,
     messages: [

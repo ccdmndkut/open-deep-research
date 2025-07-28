@@ -33,6 +33,7 @@ import { awsS3Client } from "@/lib/clients";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getResearch } from "@/db/action";
 import { extractMarkdownHeadings } from "@/lib/utils";
+import { togetherRateLimiter } from "../rateLimiter";
 
 const MAX_BUDGET = 3;
 
@@ -59,6 +60,9 @@ const generateResearchQueries = async (
   plan: string;
   summarisedPlan: string;
 }> => {
+  // Rate limit Together.ai calls
+  await togetherRateLimiter.waitIfNeeded();
+  
   const initialSearchEvaluation = await generateText({
     model: togetheraiClientWithKey(togetherApiKey || "")(
       MODEL_CONFIG.planningModel
@@ -77,6 +81,9 @@ const generateResearchQueries = async (
   );
 
   // Run plan parsing and summary generation in parallel
+  // Rate limit before parallel calls
+  await togetherRateLimiter.waitIfNeeded();
+  
   const [parsedPlan, planSummary] = await Promise.all([
     generateObject({
       model: togetheraiClientWithKey(togetherApiKey || "")(
@@ -141,6 +148,9 @@ const generateResearchAnswer = async ({
 
   let fullReport = "";
 
+  // Rate limit Together.ai calls
+  await togetherRateLimiter.waitIfNeeded();
+  
   const { textStream } = await streamText({
     model: togetheraiClientWithKey(togetherApiKey || "")(
       MODEL_CONFIG.answerModel
@@ -285,6 +295,8 @@ export const startResearchWorkflow = createWorkflow<
 
     try {
       // Generate the image prompt using the planning model
+      await togetherRateLimiter.waitIfNeeded();
+      
       const imageGenerationPrompt = await generateText({
         model: togetheraiClient(MODEL_CONFIG.summaryModel),
         messages: [
@@ -305,6 +317,9 @@ export const startResearchWorkflow = createWorkflow<
         timestamp: Date.now(),
       });
 
+      // Rate limit before image generation
+      await togetherRateLimiter.waitIfNeeded();
+      
       const generatedImage = await togetheraiWithKey(
         togetherApiKey || ""
       ).images.create({
