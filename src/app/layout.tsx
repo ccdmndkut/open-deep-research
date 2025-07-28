@@ -29,26 +29,26 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
-      <SidebarProvider>
-        <TogetherApiKeyProvider>
-          <AppSidebar />
-          <html lang="en" className="h-full">
-            <head>
-              <PlausibleProvider domain="opendeepresearch.dev" />
-            </head>
-            <body
-              className={cn(
-                `${figtree.variable} flex min-h-full flex-col antialiased mt-[120px] md:mt-0`
-              )}
-            >
+    <html lang="en" className="h-full">
+      <head>
+        <PlausibleProvider domain="opendeepresearch.dev" />
+      </head>
+      <body
+        className={cn(
+          `${figtree.variable} flex min-h-full flex-col antialiased mt-[120px] md:mt-0`
+        )}
+      >
+        <ClerkProvider>
+          <SidebarProvider>
+            <TogetherApiKeyProvider>
+              <AppSidebar />
               <Header />
               <Toaster position="top-center" richColors />
               {children}
-            </body>
-          </html>
-        </TogetherApiKeyProvider>
-      </SidebarProvider>
-    </ClerkProvider>
+            </TogetherApiKeyProvider>
+          </SidebarProvider>
+        </ClerkProvider>
+      </body>
+    </html>
   );
 }

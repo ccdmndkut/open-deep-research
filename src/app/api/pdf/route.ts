@@ -24,10 +24,33 @@ export async function POST(req: NextRequest) {
       headless: true, // Changed from "new" to true
     });
   } else {
+    // Detect Chrome path based on OS
+    let executablePath = "";
+    if (process.platform === "win32") {
+      // Windows paths
+      const possiblePaths = [
+        "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+        "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
+        process.env.LOCALAPPDATA + "\\Google\\Chrome\\Application\\chrome.exe"
+      ];
+      for (const path of possiblePaths) {
+        try {
+          const fs = require('fs');
+          if (fs.existsSync(path)) {
+            executablePath = path;
+            break;
+          }
+        } catch (e) {}
+      }
+    } else if (process.platform === "darwin") {
+      executablePath = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+    } else {
+      executablePath = "/usr/bin/google-chrome";
+    }
+    
     browser = await puppeteer.launch({
-      headless: true, // Changed from "new" to true
-      executablePath:
-        "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+      headless: true,
+      executablePath: executablePath || undefined,
     });
   }
 
@@ -45,6 +68,12 @@ export async function POST(req: NextRequest) {
   const pdf = await page.pdf({
     format: "A4",
     printBackground: true,
+    margin: {
+      top: "0.75in",   // Reduced from 1.5in
+      bottom: "1.5in", // Increased from default
+      left: "0.5in",
+      right: "0.5in"
+    }
   });
 
   await browser.close();

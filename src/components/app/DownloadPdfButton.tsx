@@ -15,7 +15,10 @@ export const DownloadPdfButton = ({ fileName }: { fileName?: string }) => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ url: window.location.href, fileName }),
+        body: JSON.stringify({ 
+          url: window.location.href + (window.location.href.includes('?') ? '&' : '?') + 'pdf=true', 
+          fileName 
+        }),
       });
 
       if (!response.ok) {

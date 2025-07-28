@@ -12,20 +12,10 @@ import { SignedIn, UserButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getChats } from "@/lib/getChats";
 import { ApiKeyControls } from "@/components/app/ApiKeyControls";
+import { getChats } from "@/lib/getChats";
 
 type Chat = Awaited<ReturnType<typeof getChats>>[number];
-
-async function fetchChats(): Promise<Chat[]> {
-  const res = await fetch("/api/chats");
-  if (!res.ok) {
-    // Handle error, maybe throw or return empty array
-    console.error("Failed to fetch chats");
-    return [];
-  }
-  return res.json();
-}
 
 export function AppSidebar() {
   const router = useRouter();
@@ -41,7 +31,7 @@ export function AppSidebar() {
     if (!isUserLoggedIn) return;
 
     const fetchAndSetChats = async () => {
-      const chatsData = await fetchChats();
+      const chatsData = await getChats();
       setChats(chatsData);
       setIsLoading(false);
     };

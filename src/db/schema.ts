@@ -18,7 +18,7 @@ export const deepresearchStautsEnum = pgEnum("status", [
   "completed",
 ]);
 
-export const research = pgTable("chats", {
+export const research = pgTable("research", {
   id: varchar()
     .primaryKey()
     .$defaultFn(() => nanoid()),

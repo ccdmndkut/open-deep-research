@@ -2,12 +2,26 @@
 import Link from "next/link";
 import { useSidebar } from "./ui/sidebar";
 import { useUser } from "@clerk/nextjs";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export const Header = () => {
   const { toggleSidebar } = useSidebar();
   const { isSignedIn, user, isLoaded } = useUser();
+  const searchParams = useSearchParams();
+  const [isPdfMode, setIsPdfMode] = useState(false);
+
+  useEffect(() => {
+    // Check if we're in PDF mode by looking for a specific query param
+    setIsPdfMode(searchParams.get("pdf") === "true");
+  }, [searchParams]);
 
   const isUserLoggedIn = isLoaded && isSignedIn;
+
+  // Hide header in PDF mode
+  if (isPdfMode) {
+    return null;
+  }
 
   return (
     <div className="fixed md:hidden right-0 left-0 w-full top-0 bg-white/80 dark:bg-zinc-950/80 backdrop-blur-sm border-b border-zinc-200 dark:border-zinc-800 z-50">

@@ -9,7 +9,7 @@ export async function GET() {
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
-  const chats = await getChats(userId);
+  const chats = await getChats();
 
   return NextResponse.json(chats);
 }

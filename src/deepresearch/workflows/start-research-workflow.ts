@@ -10,7 +10,6 @@ import { WorkflowContext } from "@upstash/workflow";
 import { generateText, generateObject, streamText } from "ai";
 import { MODEL_CONFIG, PROMPTS, RESEARCH_CONFIG } from "../config";
 import {
-  togetherai,
   togetheraiClient,
   togetheraiClientWithKey,
   togetheraiWithKey,
@@ -63,6 +62,13 @@ const generateResearchQueries = async (
     ],
   });
 
+  console.log(
+    `🤖 Initial search evaluation: ${initialSearchEvaluation.text.slice(
+      0,
+      100
+    )}...`
+  );
+
   // Run plan parsing and summary generation in parallel
   const [parsedPlan, planSummary] = await Promise.all([
     generateObject({
@@ -71,7 +77,7 @@ const generateResearchQueries = async (
       ),
       messages: [
         { role: "system", content: PROMPTS.planParsingPrompt },
-        { role: "user", content: `Research Topic: ${topic}` },
+        { role: "user", content: initialSearchEvaluation.text },
       ],
       schema: researchPlanSchema,
     }),
@@ -85,6 +91,9 @@ const generateResearchQueries = async (
       ],
     }),
   ]);
+
+  console.log(`🤖 Parsed plan: ${JSON.stringify(parsedPlan.object, null, 2)}`);
+  console.log(`🤖 Plan summary: ${planSummary.text.slice(0, 100)}...`);
 
   console.log(
     `📋 Research queries generated: \n - ${parsedPlan.object.queries.join(
@@ -151,6 +160,7 @@ const generateResearchAnswer = async ({
     }
   }
 
+  console.log(`🤖 Full report: ${fullReport.slice(0, 100)}...`);
   return fullReport.trim();
 };
 
@@ -297,18 +307,14 @@ export const startResearchWorkflow = createWorkflow<
 
       const coverImageKey = `research-cover-${generatedImage.id}.jpg`;
 
-      await awsS3Client.send(
-        new PutObjectCommand({
-          Bucket: process.env.S3_UPLOAD_BUCKET || "",
-          Key: coverImageKey,
-          Body: imageBuffer,
-          ContentType: "image/jpeg",
-        })
-      );
-
-      const imageUrl = `https://${process.env.S3_UPLOAD_BUCKET}.s3.${
-        process.env.S3_UPLOAD_REGION || "us-east-1"
-      }.amazonaws.com/${coverImageKey}`;
+      // Local storage instead of S3
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      
+      const localPath = path.join(process.cwd(), 'public', 'research-covers', coverImageKey);
+      await fs.writeFile(localPath, imageBuffer);
+      
+      const imageUrl = `/research-covers/${coverImageKey}`;
 
       await streamStorage.addEvent(sessionId, {
         type: "cover_generation_completed",
