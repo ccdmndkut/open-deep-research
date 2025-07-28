@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { generateText } from "ai";
-import { togetheraiClient, togetheraiClientWithKey } from "@/deepresearch/apiClients";
+import { getAIClient } from "@/deepresearch/aiProvider";
 import { MODEL_CONFIG } from "@/deepresearch/config";
 import dedent from "dedent";
 
@@ -67,10 +67,8 @@ export async function POST(req: NextRequest) {
     `;
 
     // Use custom API key if provided, otherwise use default
-    const client = apiKey ? togetheraiClientWithKey(apiKey) : togetheraiClient;
-
     const result = await generateText({
-      model: client(MODEL_CONFIG.planningModel),
+      model: getAIClient(MODEL_CONFIG.planningModel, apiKey || undefined),
       messages: [
         {
           role: "user",

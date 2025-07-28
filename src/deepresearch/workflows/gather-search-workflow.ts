@@ -7,7 +7,7 @@ import { createWorkflow } from "@upstash/workflow/nextjs";
 import { stateStorage, streamStorage } from "../storage";
 import { WorkflowContext } from "@upstash/workflow";
 import { generateText, generateObject } from "ai";
-import { togetheraiClientWithKey } from "../apiClients";
+import { getAIClient } from "../aiProvider";
 import { MODEL_CONFIG, PROMPTS, RESEARCH_CONFIG } from "../config";
 import {
   researchPlanSchema,
@@ -40,10 +40,8 @@ const summarizeContent = async ({
   const isContentVeryLong = result.content.length > 100000;
 
   const model = isContentVeryLong
-    ? togetheraiClientWithKey(togetherApiKey || "")(
-        MODEL_CONFIG.summaryModelLongPages
-      )
-    : togetheraiClientWithKey(togetherApiKey || "")(MODEL_CONFIG.summaryModel);
+    ? getAIClient(MODEL_CONFIG.summaryModelLongPages, togetherApiKey)
+    : getAIClient(MODEL_CONFIG.summaryModel, togetherApiKey);
 
   // Rate limit Together.ai calls
   await togetherRateLimiter.waitIfNeeded();
@@ -241,10 +239,11 @@ const evaluateResearchCompleteness = async ({
   <Current Search Results>${formattedResults}</Current Search Results>
   `;
 
+  // Rate limit Together.ai calls
+  await togetherRateLimiter.waitIfNeeded();
+  
   const evaluation = await generateText({
-    model: togetheraiClientWithKey(togetherApiKey || "")(
-      MODEL_CONFIG.planningModel
-    ),
+    model: getAIClient(MODEL_CONFIG.planningModel, togetherApiKey),
     messages: [
       { role: "system", content: PROMPTS.evaluationPrompt },
       {
@@ -256,20 +255,19 @@ const evaluateResearchCompleteness = async ({
   console.log(`📝 Evaluation:\n\n ${evaluation.text}`);
 
   // Run evaluation summary and parsing in parallel
+  // Rate limit before parallel calls
+  await togetherRateLimiter.waitIfNeeded();
+  
   const [evaluationSummary, parsedEvaluation] = await Promise.all([
     generateText({
-      model: togetheraiClientWithKey(togetherApiKey || "")(
-        MODEL_CONFIG.summaryModel
-      ),
+      model: getAIClient(MODEL_CONFIG.summaryModel, togetherApiKey),
       messages: [
         { role: "system", content: PROMPTS.planSummaryPrompt },
         { role: "user", content: evaluation.text },
       ],
     }),
     generateObject({
-      model: togetheraiClientWithKey(togetherApiKey || "")(
-        MODEL_CONFIG.jsonModel
-      ),
+      model: getAIClient(MODEL_CONFIG.jsonModel, togetherApiKey),
       messages: [
         { role: "system", content: PROMPTS.evaluationParsingPrompt },
         {

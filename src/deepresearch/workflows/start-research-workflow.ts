@@ -10,10 +10,9 @@ import { WorkflowContext } from "@upstash/workflow";
 import { generateText, generateObject, streamText } from "ai";
 import { MODEL_CONFIG, PROMPTS, RESEARCH_CONFIG } from "../config";
 import {
-  togetheraiClient,
-  togetheraiClientWithKey,
   togetheraiWithKey,
 } from "../apiClients";
+import { getAIClient } from "../aiProvider";
 import {
   researchPlanSchema,
   ResearchState,
@@ -64,9 +63,7 @@ const generateResearchQueries = async (
   await togetherRateLimiter.waitIfNeeded();
   
   const initialSearchEvaluation = await generateText({
-    model: togetheraiClientWithKey(togetherApiKey || "")(
-      MODEL_CONFIG.planningModel
-    ),
+    model: getAIClient(MODEL_CONFIG.planningModel, togetherApiKey),
     messages: [
       { role: "system", content: PROMPTS.planningPrompt },
       { role: "user", content: `Research Topic: ${topic}` },
@@ -86,9 +83,7 @@ const generateResearchQueries = async (
   
   const [parsedPlan, planSummary] = await Promise.all([
     generateObject({
-      model: togetheraiClientWithKey(togetherApiKey || "")(
-        MODEL_CONFIG.jsonModel
-      ),
+      model: getAIClient(MODEL_CONFIG.jsonModel, togetherApiKey),
       messages: [
         { role: "system", content: PROMPTS.planParsingPrompt },
         { role: "user", content: initialSearchEvaluation.text },
@@ -96,9 +91,7 @@ const generateResearchQueries = async (
       schema: researchPlanSchema,
     }),
     generateText({
-      model: togetheraiClientWithKey(togetherApiKey || "")(
-        MODEL_CONFIG.summaryModel
-      ),
+      model: getAIClient(MODEL_CONFIG.summaryModel, togetherApiKey),
       messages: [
         { role: "system", content: PROMPTS.planSummaryPrompt },
         { role: "user", content: initialSearchEvaluation.text },
@@ -152,9 +145,7 @@ const generateResearchAnswer = async ({
   await togetherRateLimiter.waitIfNeeded();
   
   const { textStream } = await streamText({
-    model: togetheraiClientWithKey(togetherApiKey || "")(
-      MODEL_CONFIG.answerModel
-    ),
+    model: getAIClient(MODEL_CONFIG.answerModel, togetherApiKey),
     messages: [
       { role: "system", content: PROMPTS.answerPrompt },
       {
@@ -298,7 +289,7 @@ export const startResearchWorkflow = createWorkflow<
       await togetherRateLimiter.waitIfNeeded();
       
       const imageGenerationPrompt = await generateText({
-        model: togetheraiClient(MODEL_CONFIG.summaryModel),
+        model: getAIClient(MODEL_CONFIG.summaryModel),
         messages: [
           { role: "system", content: PROMPTS.dataVisualizerPrompt },
           { role: "user", content: `Research Topic: ${topic}` },

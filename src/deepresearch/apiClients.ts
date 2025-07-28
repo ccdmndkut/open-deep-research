@@ -1,4 +1,5 @@
 import { createTogetherAI } from "@ai-sdk/togetherai";
+import { createOpenAI } from "@ai-sdk/openai";
 import Together from "together-ai";
 
 const APP_NAME_HELICONE = "deepresearch";
@@ -12,6 +13,16 @@ export const togetheraiClient = createTogetherAI({
   },
 });
 
+// OpenRouter client
+export const openRouterClient = createOpenAI({
+  apiKey: process.env.OPENROUTER_API_KEY ?? "",
+  baseURL: "https://openrouter.ai/api/v1",
+  headers: {
+    "HTTP-Referer": process.env.SITE_URL || "https://deepresearch.vercel.app",
+    "X-Title": "Deep Research",
+  },
+});
+
 // Dynamic TogetherAI client for client-side use
 export function togetheraiClientWithKey(apiKey: string) {
   return createTogetherAI({
@@ -20,6 +31,18 @@ export function togetheraiClientWithKey(apiKey: string) {
     headers: {
       "Helicone-Auth": `Bearer ${process.env.HELICONE_API_KEY}`,
       "Helicone-Property-AppName": APP_NAME_HELICONE,
+    },
+  });
+}
+
+// Dynamic OpenRouter client
+export function openRouterClientWithKey(apiKey: string) {
+  return createOpenAI({
+    apiKey: apiKey || process.env.OPENROUTER_API_KEY || "",
+    baseURL: "https://openrouter.ai/api/v1",
+    headers: {
+      "HTTP-Referer": process.env.SITE_URL || "https://deepresearch.vercel.app",
+      "X-Title": "Deep Research",
     },
   });
 }

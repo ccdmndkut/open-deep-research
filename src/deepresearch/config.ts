@@ -9,13 +9,24 @@ import dedent from "dedent";
 
 // Model Selection
 // Specialized models for different stages of the research pipeline
-export const MODEL_CONFIG = {
-  planningModel: "Qwen/Qwen2.5-72B-Instruct-Turbo", // Used for research planning and evaluation // 32k context window
+export const TOGETHER_MODEL_CONFIG = {
+  planningModel: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo", // Used for research planning and evaluation
   jsonModel: "meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo", // Used for structured data parsing
-  summaryModel: "meta-llama/Llama-3.3-70B-Instruct-Turbo", // Used for web content summarization // 128k context window
-  summaryModelLongPages: "meta-llama/Llama-4-Scout-17B-16E-Instruct", // Used for web content summarization of long pages
-  answerModel: "deepseek-ai/DeepSeek-V3", // Used for final answer synthesis
+  summaryModel: "meta-llama/Llama-3.3-70B-Instruct-Turbo", // Used for web content summarization
+  summaryModelLongPages: "meta-llama/Llama-3.3-70B-Instruct-Turbo", // Used for web content summarization of long pages
+  answerModel: "meta-llama/Llama-3.3-70B-Instruct-Turbo", // Used for final answer synthesis
 };
+
+export const OPENROUTER_MODEL_CONFIG = {
+  planningModel: "qwen/qwen-2.5-72b-instruct", // Used for research planning and evaluation
+  jsonModel: "meta-llama/llama-3.1-70b-instruct", // Used for structured data parsing
+  summaryModel: "meta-llama/llama-3.3-70b-instruct", // Used for web content summarization
+  summaryModelLongPages: "anthropic/claude-3.5-sonnet", // Used for web content summarization of long pages
+  answerModel: "deepseek/deepseek-v3", // Used for final answer synthesis
+};
+
+// Legacy MODEL_CONFIG for backward compatibility - uses Together.ai models
+export const MODEL_CONFIG = TOGETHER_MODEL_CONFIG;
 
 // Resource Allocation
 // Parameters controlling research depth and breadth

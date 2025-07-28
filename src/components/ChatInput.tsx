@@ -23,9 +23,78 @@ export const ChatInput = ({
     return "";
   });
   const [isProcessingFile, setIsProcessingFile] = useState(false);
+  const [isProcessingUrl, setIsProcessingUrl] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { apiKey } = useTogetherApiKey();
+
+  // URL detection regex
+  const isUrl = (text: string): boolean => {
+    const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/i;
+    return urlPattern.test(text.trim());
+  };
+
+  // Process URL input by extracting content and generating a research query
+  const processUrlInput = async (inputText: string): Promise<string> => {
+    const trimmedInput = inputText.trim();
+    
+    if (!isUrl(trimmedInput)) {
+      return inputText; // Not a URL, return as-is
+    }
+
+    setIsProcessingUrl(true);
+    toast.info("Extracting content from URL...");
+
+    try {
+      // Ensure URL has protocol
+      const url = trimmedInput.startsWith('http') ? trimmedInput : `https://${trimmedInput}`;
+      
+      // Fetch content using r.jina.ai
+      const jinaUrl = `https://r.jina.ai/${url}`;
+      const jinaResponse = await fetch(jinaUrl, {
+        headers: {
+          'Accept': 'text/plain',
+        },
+      });
+
+      if (!jinaResponse.ok) {
+        throw new Error(`Failed to extract content: ${jinaResponse.statusText}`);
+      }
+
+      const content = await jinaResponse.text();
+
+      if (!content || content.length < 100) {
+        throw new Error("Could not extract meaningful content from the URL");
+      }
+
+      // Generate research query from the content
+      const queryResponse = await fetch("/api/generate-query", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: content,
+          url: url,
+          apiKey: apiKey
+        }),
+      });
+
+      if (!queryResponse.ok) {
+        const error = await queryResponse.json();
+        throw new Error(error.error || "Failed to generate research query");
+      }
+
+      const { query } = await queryResponse.json();
+      toast.success("Generated research query from URL content");
+      return query;
+
+    } catch (error) {
+      console.error("Error processing URL:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to process URL");
+      return inputText; // Return original input on error
+    } finally {
+      setIsProcessingUrl(false);
+    }
+  };
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -102,13 +171,13 @@ export const ChatInput = ({
       <textarea
         ref={textareaRef}
         className="mb-12 resize-none w-full min-h-12 outline-none bg-transparent placeholder:text-zinc-400 max-h-[240px] overflow-y-auto"
-        placeholder="Type your message (Enter to send, Shift+Enter for new line)"
+        placeholder="Enter a research question or paste a URL to analyze"
         value={input}
-        disabled={disabled}
+        disabled={disabled || isProcessingUrl}
         onChange={(event) => {
           setInput(event.currentTarget.value);
         }}
-        onKeyDown={(event) => {
+        onKeyDown={async (event) => {
           if (event.key === "Enter" && !event.shiftKey) {
             event.preventDefault();
 
@@ -116,9 +185,12 @@ export const ChatInput = ({
               return;
             }
 
+            // Process URL if detected
+            const processedInput = await processUrlInput(input);
+
             append({
               role: "user",
-              content: input.trimEnd(),
+              content: processedInput.trimEnd(),
               createdAt: new Date(),
             });
 
@@ -142,10 +214,10 @@ export const ChatInput = ({
         <button
           className={cn(
             "px-3 py-1 flex flex-row justify-center items-center bg-gray-100 hover:bg-gray-200 text-gray-700 rounded text-sm transition-colors",
-            isProcessingFile && "opacity-50 cursor-not-allowed"
+            (isProcessingFile || isProcessingUrl) && "opacity-50 cursor-not-allowed"
           )}
           onClick={() => fileInputRef.current?.click()}
-          disabled={disabled || isProcessingFile}
+          disabled={disabled || isProcessingFile || isProcessingUrl}
           title="Upload a file to generate research topic"
         >
           {isProcessingFile ? (
@@ -167,16 +239,21 @@ export const ChatInput = ({
         </button>
         <button
           className={cn(
-            "size-[26px] flex flex-row justify-center items-center bg-[#093999] text-white rounded"
+            "size-[26px] flex flex-row justify-center items-center bg-[#093999] text-white rounded",
+            isProcessingUrl && "opacity-50 cursor-not-allowed"
           )}
-          onClick={() => {
-            if (input === "") {
+          disabled={disabled || isProcessingUrl}
+          onClick={async () => {
+            if (input === "" || isProcessingUrl) {
               return;
             }
 
+            // Process URL if detected
+            const processedInput = await processUrlInput(input);
+
             append({
               role: "user",
-              content: input.trimEnd(),
+              content: processedInput.trimEnd(),
               createdAt: new Date(),
             });
             setInput("");
@@ -184,8 +261,16 @@ export const ChatInput = ({
               localStorage.removeItem("chatInput");
             }
           }}
+          title="Send message"
         >
-          <ArrowUpIcon size={12} />
+          {isProcessingUrl ? (
+            <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+          ) : (
+            <ArrowUpIcon size={12} />
+          )}
         </button>
       </div>
     </div>

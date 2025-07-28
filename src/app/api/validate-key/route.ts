@@ -1,4 +1,4 @@
-import { togetheraiClientWithKey } from "@/deepresearch/apiClients";
+import { getAIClient } from "@/deepresearch/aiProvider";
 import { generateText } from "ai";
 
 export async function POST(request: Request) {
@@ -12,10 +12,9 @@ export async function POST(request: Request) {
   }
 
   try {
-    const customClient = togetheraiClientWithKey(apiKey);
     // Make a simple LLM call to validate the API key
     await generateText({
-      model: customClient("Qwen/Qwen2.5-72B-Instruct-Turbo"),
+      model: getAIClient("Qwen/Qwen2.5-72B-Instruct-Turbo", apiKey),
       maxTokens: 100,
       messages: [
         {
