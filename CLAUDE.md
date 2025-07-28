@@ -60,8 +60,9 @@ Critical environment variables (see `.example.env`):
 - `DATABASE_URL` - PostgreSQL connection
 - `QSTASH_URL`, `QSTASH_TOKEN` - Workflow orchestration
 - `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` - State management
-- `AWS_S3_*` - Image storage credentials
+- `AWS_S3_*` - Image storage credentials (or use local storage)
 - `CLERK_*` - Authentication keys
+- `BRAVE_API_KEY`, `TAVILY_API_KEY`, `JINA_API_KEY` - Search API keys (at least one required)
 
 ### Workflow Development
 The research workflow uses Upstash QStash for serverless execution. Key workflow steps are defined in `src/deepresearch/workflows/start-research-workflow.ts`. Use `pnpm workflow` to test workflows locally with the QStash CLI.

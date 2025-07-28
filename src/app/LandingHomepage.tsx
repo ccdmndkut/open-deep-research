@@ -7,10 +7,18 @@ import { useState } from "react";
 import LoadingChat from "./chat/[chatId]/loading";
 import { LandingHero } from "@/components/LandingHero";
 import { LandingCard } from "@/components/LandingCard";
+import { ResearchSettings, ResearchConfig } from "@/components/ResearchSettings";
+import { RESEARCH_CONFIG } from "@/deepresearch/config";
 
 export const LandingHomepage = () => {
   const { isSignedIn, user, isLoaded } = useUser();
   const [isLoading, setIsLoading] = useState(false);
+  const [researchConfig, setResearchConfig] = useState<ResearchConfig>({
+    maxTokens: RESEARCH_CONFIG.maxTokens,
+    budget: RESEARCH_CONFIG.budget,
+    maxQueries: RESEARCH_CONFIG.maxQueries,
+    maxSources: RESEARCH_CONFIG.maxSources,
+  });
 
   if (isLoading) return <LoadingChat />;
 
@@ -65,16 +73,23 @@ export const LandingHomepage = () => {
             </div>
           </SignedOut>
         ) : (
-          <ChatInput
-            disabled={!isLoaded || isLoading}
-            append={(message) => {
-              setIsLoading(true);
-              createResearchAndRedirect({
-                clerkUserId: isSignedIn ? user.id : undefined,
-                initialUserMessage: message.content,
-              });
-            }}
-          />
+          <>
+            <ResearchSettings 
+              config={researchConfig}
+              onChange={setResearchConfig}
+            />
+            <ChatInput
+              disabled={!isLoaded || isLoading}
+              append={(message) => {
+                setIsLoading(true);
+                createResearchAndRedirect({
+                  clerkUserId: isSignedIn ? user.id : undefined,
+                  initialUserMessage: message.content,
+                  researchConfig: researchConfig,
+                });
+              }}
+            />
+          </>
         )}
 
         <Footer />

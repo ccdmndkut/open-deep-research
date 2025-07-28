@@ -46,5 +46,13 @@ export const research = pgTable("research", {
     }[]
   >(), // urls of the sources used to generate the report
 
+  // Custom research configuration
+  researchConfig: jsonb().$type<{
+    maxTokens: number;
+    budget: number;
+    maxQueries: number;
+    maxSources: number;
+  }>(),
+
   createdAt: timestamp().defaultNow().notNull(),
 });

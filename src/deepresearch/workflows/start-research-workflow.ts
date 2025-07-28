@@ -41,12 +41,19 @@ export type StartResearchPayload = {
   topic: string;
   sessionId: string;
   togetherApiKey?: string;
+  researchConfig?: {
+    maxTokens: number;
+    budget: number;
+    maxQueries: number;
+    maxSources: number;
+  };
 };
 
 // Helper function to generate research queries
 const generateResearchQueries = async (
   topic: string,
-  togetherApiKey?: string
+  togetherApiKey?: string,
+  maxQueries: number = RESEARCH_CONFIG.maxQueries
 ): Promise<{
   queries: string[];
   plan: string;
@@ -102,7 +109,7 @@ const generateResearchQueries = async (
   );
 
   const dedupedQueries = Array.from(new Set(parsedPlan.object.queries));
-  const queries = dedupedQueries.slice(0, RESEARCH_CONFIG.maxQueries);
+  const queries = dedupedQueries.slice(0, maxQueries);
 
   return {
     queries,
@@ -117,11 +124,13 @@ const generateResearchAnswer = async ({
   results,
   sessionId,
   togetherApiKey,
+  maxTokens = RESEARCH_CONFIG.maxTokens,
 }: {
   topic: string;
   results: SearchResult[];
   sessionId: string;
   togetherApiKey?: string;
+  maxTokens?: number;
 }): Promise<string> => {
   const formattedSearchResults = results
     .map(
@@ -143,7 +152,7 @@ const generateResearchAnswer = async ({
         content: `Research Topic: ${topic}\n\nSearch Results:\n${formattedSearchResults}`,
       },
     ],
-    maxTokens: RESEARCH_CONFIG.maxTokens,
+    maxTokens: maxTokens,
   });
 
   let index = 0;
@@ -169,7 +178,15 @@ export const startResearchWorkflow = createWorkflow<
   StartResearchPayload,
   string
 >(async (context: WorkflowContext<StartResearchPayload>) => {
-  const { topic, sessionId, togetherApiKey } = context.requestPayload;
+  const { topic, sessionId, togetherApiKey, researchConfig } = context.requestPayload;
+  
+  // Use custom config or defaults
+  const config = {
+    maxTokens: researchConfig?.maxTokens || RESEARCH_CONFIG.maxTokens,
+    budget: researchConfig?.budget || RESEARCH_CONFIG.budget,
+    maxQueries: researchConfig?.maxQueries || RESEARCH_CONFIG.maxQueries,
+    maxSources: researchConfig?.maxSources || RESEARCH_CONFIG.maxSources,
+  };
 
   // Step 1: Generate initial research plan using LLM
   const initialQueries = await context.run(
@@ -202,7 +219,8 @@ export const startResearchWorkflow = createWorkflow<
         // Generate queries using local LLM function
         const { queries, plan, summarisedPlan } = await generateResearchQueries(
           topic,
-          togetherApiKey
+          togetherApiKey,
+          config.maxQueries
         );
 
         // Emit queries generated event
@@ -219,7 +237,7 @@ export const startResearchWorkflow = createWorkflow<
           topic,
           allQueries: queries,
           searchResults: [],
-          budget: MAX_BUDGET, // Allowed iterations
+          budget: config.budget, // Allowed iterations
           iteration: 0,
         };
         await stateStorage.store(sessionId, initialState);
@@ -250,7 +268,7 @@ export const startResearchWorkflow = createWorkflow<
       topic,
       queries: initialQueries,
       existingResults: [],
-      budget: MAX_BUDGET,
+      budget: config.budget,
       iteration: 1,
       sessionId,
     },
@@ -354,6 +372,7 @@ export const startResearchWorkflow = createWorkflow<
         results: finalState.searchResults,
         sessionId,
         togetherApiKey,
+        maxTokens: config.maxTokens,
       });
 
       // Emit report generated event
